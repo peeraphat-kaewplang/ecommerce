@@ -1,0 +1,100 @@
+version: '3.8'
+services: 
+  rabbitmq:
+    image: rabbitmq:3.12.0-management
+    container_name: rabbitmq
+    hostname: rabbitmq
+    volumes:
+      - /var/lib/rabbitmq
+    ports:
+      - '5672:5672'
+      - '15672:15672'
+    env_file:
+      - .env
+
+  auth:
+    build:
+      context: ./
+      dockerfile: ./apps/auth/Dockerfile
+    env_file:
+      - .env
+    depends_on:
+      - rabbitmq
+      - mysql
+    volumes:
+      - .:/usr/src/app
+      - /usr/src/app/node_modules
+    command: npm run start:dev auth
+
+  usermanage:
+    build:
+      context: ./
+      dockerfile: ./apps/user-management/Dockerfile
+    env_file:
+      - .env
+    depends_on:
+      - rabbitmq
+      - mysql
+    volumes:
+      - .:/usr/src/app
+      - /usr/src/app/node_modules
+    command: npm run start:dev user-management
+
+  productmanage:
+    build:
+      context: ./
+      dockerfile: ./apps/product-management/Dockerfile
+    env_file:
+      - .env
+    depends_on:
+      - rabbitmq
+      - mysql
+    volumes:
+      - .:/usr/src/app
+      - /usr/src/app/node_modules
+    command: npm run start:dev product-management
+  
+  ordermanage:
+    build:
+      context: ./
+      dockerfile: ./apps/order-management/Dockerfile
+    env_file:
+      - .env
+    depends_on:
+      - rabbitmq
+      - mysql
+    volumes:
+      - .:/usr/src/app
+      - /usr/src/app/node_modules
+    command: npm run start:dev order-management
+
+  gateway:
+    build:
+      context: ./
+      dockerfile: ./apps/api-gateway/Dockerfile
+    ports:
+      - '5000:5000'
+    env_file:
+      - .env
+    depends_on:
+      - rabbitmq
+      - auth
+    volumes:
+      - .:/usr/src/app # any change to base folder should be reflected
+      - /usr/src/app/node_modules
+    command: npm run start:dev api-gateway
+      
+  mysql:   
+    image: mysql:8.0
+    restart: always
+    environment:
+      - MYSQL_DATABASE=ecommerce
+      - MYSQL_ROOT_PASSWORD=As@123456789!
+    ports:
+      - '3307:3306'
+    expose:
+      - '3306'
+    volumes:
+      - ./db/data:/var/lib/mysql
+      - ./db/init.sql:/docker-entrypoint-initdb.d/init.sql
+ 
